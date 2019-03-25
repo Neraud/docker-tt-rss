@@ -7,6 +7,7 @@
 # create symlinks
 symlinks=( \
 /var/www/html/config.php \
+/var/www/html/config.local \
 /var/www/html/themes.local \
 /var/www/html/plugins.local \
 /var/www/html/cache \
@@ -14,8 +15,10 @@ symlinks=( \
 /var/www/html/feed-icons
 )
 
+mkdir -p /config/config.local
+
 for i in "${symlinks[@]}"; do
-	[[ "$(basename "$i")" == "config.php" && ! -L "$i" ]] && \
+	[[ "$(basename "$i")" == "config."* && ! -L "$i" ]] && \
 		ln -s /config/"$(basename "$i")" "$i"
 	[[ -e "$i" && ! -L "$i" && -e /config/"$(basename "$i")" ]] && \
 		rm -Rf "$i" && \
@@ -64,6 +67,12 @@ if [ "${DB_TYPE+x}" ]; then
 	[[ "${ENABLE_GZIP_OUTPUT+x}" ]] && sed -i "s|\s*define('ENABLE_GZIP_OUTPUT',.*|\tdefine('ENABLE_GZIP_OUTPUT', '$ENABLE_GZIP_OUTPUT');|g" /config/config.php
 	[[ "${PLUGINS+x}" ]] && sed -i "s|\s*define('PLUGINS',.*|\tdefine('PLUGINS', '$PLUGINS');|g" /config/config.php
 	[[ "${LOG_DESTINATION+x}" ]] && sed -i "s|\s*define('LOG_DESTINATION',.*|\tdefine('LOG_DESTINATION', '$LOG_DESTINATION');|g" /config/config.php
+fi
+
+# inject config.local
+if [[ -f /config/config.php && $(grep -c config.local /config/config.php) -eq 0 ]] ; then
+	echo "injecting config.local includes into config.php"
+	echo '	foreach (glob("config.local/*.php") as $filename) { include $filename; }' >> /config/config.php
 fi
 
 # permissions
